@@ -1,13 +1,13 @@
-import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
+import { App, Editor, MarkdownView, Modal, /*Notice, */Plugin, PluginSettingTab, Setting } from 'obsidian';
 
 // Remember to rename these classes and interfaces!
 
 interface MyPluginSettings {
-	mySetting: string;
+	progLang: string;
 }
 
 const DEFAULT_SETTINGS: MyPluginSettings = {
-	mySetting: 'default'
+	progLang: 'Python'
 }
 
 export default class MyPlugin extends Plugin {
@@ -17,10 +17,19 @@ export default class MyPlugin extends Plugin {
 		await this.loadSettings();
 
 		// This creates an icon in the left ribbon.
-		const ribbonIconEl = this.addRibbonIcon('dice', 'Sample Plugin', (evt: MouseEvent) => {
-			// Called when the user clicks the icon.
-			new Notice('This is a notice!');
+		// Add a ribbon icon
+		const ribbonIconEl = this.addRibbonIcon('hash', 'Prepend Hash to Line', (evt: MouseEvent) => {
+			//new Notice('This is a notice!');
+			// Called when the ribbon icon is clicked
+			const markdownView = this.app.workspace.getActiveViewOfType(MarkdownView);
+			if (markdownView) {
+				const editor = markdownView.editor;
+				const cursor = editor.getCursor();
+				const line = editor.getLine(cursor.line);
+				editor.replaceRange(`#${line}`, { line: cursor.line, ch: 0 }, { line: cursor.line, ch: line.length });
+			}
 		});
+
 		// Perform additional things with the ribbon
 		ribbonIconEl.addClass('my-plugin-ribbon-class');
 
@@ -38,11 +47,14 @@ export default class MyPlugin extends Plugin {
 		});
 		// This adds an editor command that can perform some operation on the current editor instance
 		this.addCommand({
-			id: 'sample-editor-command',
-			name: 'Sample editor command',
+			id: 'ik-codeblk-convert-sel',
+			name: 'Convert selection to code block',
 			editorCallback: (editor: Editor, view: MarkdownView) => {
-				console.log(editor.getSelection());
-				editor.replaceSelection('Sample Editor Command');
+				const selectedText = editor.getSelection();
+				if (selectedText) {
+					const pythonCode = `\`\`\`${this.settings.progLang}\n${selectedText}\n\`\`\``;
+					editor.replaceSelection(pythonCode);
+				}
 			}
 		});
 		// This adds a complex command that can check whether the current state of the app allows execution of the command
@@ -97,12 +109,12 @@ class SampleModal extends Modal {
 	}
 
 	onOpen() {
-		const {contentEl} = this;
+		const { contentEl } = this;
 		contentEl.setText('Woah!');
 	}
 
 	onClose() {
-		const {contentEl} = this;
+		const { contentEl } = this;
 		contentEl.empty();
 	}
 }
@@ -116,18 +128,18 @@ class SampleSettingTab extends PluginSettingTab {
 	}
 
 	display(): void {
-		const {containerEl} = this;
+		const { containerEl } = this;
 
 		containerEl.empty();
 
 		new Setting(containerEl)
-			.setName('Setting #1')
-			.setDesc('It\'s a secret')
+			.setName('Language')
+			.setDesc('Select the desired programming language for the code block')
 			.addText(text => text
-				.setPlaceholder('Enter your secret')
-				.setValue(this.plugin.settings.mySetting)
+				.setPlaceholder('Enter programming language')
+				.setValue(this.plugin.settings.progLang)
 				.onChange(async (value) => {
-					this.plugin.settings.mySetting = value;
+					this.plugin.settings.progLang = value;
 					await this.plugin.saveSettings();
 				}));
 	}
